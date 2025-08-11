@@ -31,3 +31,12 @@ func (ctrl *UserController) GetUsers(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, users)
 }
+
+func (ctrl *UserController) GetTotalUsers(c *gin.Context) {
+	totalUsers, err := ctrl.Service.GetTotalUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error al obtener el total de usuarios"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"total_users": totalUsers})
+}

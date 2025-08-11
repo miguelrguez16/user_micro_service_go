@@ -17,3 +17,7 @@ func NewUserService(userRepo *repository.UserRepository) *UserService {
 func (us *UserService) PingDataBase() bool {
 	return us.UserRepository.PingDataBase() == nil
 }
+
+func (us *UserService) GetTotalUsers() (int64, error) {
+	return us.UserRepository.GetTotalUsers()
+}

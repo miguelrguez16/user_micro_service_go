@@ -105,3 +105,15 @@ func (userRepo *UserRepository) PingDataBase() error {
 	}
 	return nil
 }
+
+func (userRepo *UserRepository) GetTotalUsers() (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	count, err := userRepo.Collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		log.Println("Error GetTotalUsers:", err)
+		return 0, err
+	}
+	return count, nil
+}

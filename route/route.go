@@ -9,7 +9,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func SetupRouter(db *mongo.Database) *gin.Engine {
+func SetupRouter(db *mongo.Database, isProduction bool) *gin.Engine {
+
+	if isProduction {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.Default()
 
 	userRepo := repository.NewUserRepository(db)
@@ -24,6 +29,7 @@ func SetupRouter(db *mongo.Database) *gin.Engine {
 		// userRoutes.PUT("/:id", userController.UpdateUser)
 		// userRoutes.DELETE("/:id", userController.DeleteUser)
 		userRoutes.GET("/ping", userController.PingDataBase)
+		userRoutes.GET("/total", userController.GetTotalUsers)
 	}
 
 	return router

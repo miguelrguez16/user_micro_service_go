@@ -16,14 +16,14 @@ func main() {
 	}
 
 	// Inicializar MongoDB
-	db, err := config.ConnectDB()
+	db, err, isProduction := config.ConnectDB()
 	if err != nil {
 		log.Fatal("Error conectando a MongoDB:", err)
 	}
 	defer db.Client().Disconnect(nil)
 
 	// Configurar rutas
-	router := route.SetupRouter(db)
+	router := route.SetupRouter(db, isProduction)
 
 	log.Println("🚀 Servidor escuchando en :8080")
 	router.Run(":8080")
