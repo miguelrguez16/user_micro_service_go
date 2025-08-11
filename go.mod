@@ -1,11 +1,14 @@
 module user/micro
 
-go 1.20
+go 1.23
+
+toolchain go1.24.4
 
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver v1.17.4
+	go.uber.org/mock v0.5.2
 )
 
 require (

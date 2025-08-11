@@ -20,6 +20,16 @@ type UserRepository struct {
 	Collection *mongo.Collection
 }
 
+type UserRepositoryInterface interface {
+	Create(user *models.User) error
+	FindAll() ([]models.User, error)
+	FindByID(id primitive.ObjectID) (*models.User, error)
+	Update(id primitive.ObjectID, user *models.User) error
+	Delete(id primitive.ObjectID) error
+	PingDataBase() error
+	GetTotalUsers() (int64, error)
+}
+
 // NewUserRepository creates a new UserRepository instance.
 func NewUserRepository(db *mongo.Database) *UserRepository {
 	return &UserRepository{Collection: db.Collection("users")}
