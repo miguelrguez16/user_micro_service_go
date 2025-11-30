@@ -11,225 +11,365 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-// Test_UserService_FindAll_Success tests successful retrieval of all users
-func Test_UserService_FindAll_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Create mock using gomock
-	mockRepo := mocks.NewMockUserRepository(ctrl)
-
-	// Expected users
-	expectedUsers := []models.User{
+// Test_UserService_PingDataBase tests database connectivity with various scenarios
+func Test_UserService_PingDataBase(t *testing.T) {
+	tests := []struct {
+		name           string
+		mockError      error
+		expectedResult bool
+	}{
 		{
-			ID:    primitive.NewObjectID(),
-			Name:  "John Doe",
-			Email: "john@example.com",
+			name:           "successful ping",
+			mockError:      nil,
+			expectedResult: true,
 		},
 		{
-			ID:    primitive.NewObjectID(),
-			Name:  "Jane Smith",
-			Email: "jane@example.com",
+			name:           "failed ping",
+			mockError:      errors.New("database unavailable"),
+			expectedResult: false,
 		},
 	}
 
-	// Setup expectations
-	mockRepo.EXPECT().
-		FindAll().
-		Return(expectedUsers, nil).
-		Times(1)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	// Create service with mock
-	service := NewUserService(mockRepo)
+			mockRepo := mocks.NewMockUserRepository(ctrl)
+			mockRepo.EXPECT().
+				PingDataBase().
+				Return(tt.mockError).
+				Times(1)
 
-	// Execute
-	users, err := service.FindAll()
+			service := NewUserService(mockRepo)
+			result := service.PingDataBase()
 
-	// Assert
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-
-	if len(users) != len(expectedUsers) {
-		t.Errorf("Expected %d users, got %d", len(expectedUsers), len(users))
-	}
-}
-
-// Test_UserService_GetTotalUsers_Success tests successful retrieval of total users
-func Test_UserService_GetTotalUsers_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockUserRepository(ctrl)
-
-	expectedTotal := int64(42)
-
-	mockRepo.EXPECT().
-		GetTotalUsers().
-		Return(expectedTotal, nil).
-		Times(1)
-
-	service := NewUserService(mockRepo)
-
-	total, err := service.GetTotalUsers()
-
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-
-	if total != expectedTotal {
-		t.Errorf("Expected %d users, got %d", expectedTotal, total)
+			if result != tt.expectedResult {
+				t.Errorf("Expected PingDataBase to return %v, got %v", tt.expectedResult, result)
+			}
+		})
 	}
 }
 
-// Test_UserService_PingDataBase_Success tests successful database ping
-func Test_UserService_PingDataBase_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+// Test_UserService_GetTotalUsers tests GetTotalUsers with various scenarios
+func Test_UserService_GetTotalUsers(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockReturn  int64
+		mockError   error
+		expectError bool
+	}{
+		{
+			name:        "successful total with users",
+			mockReturn:  42,
+			mockError:   nil,
+			expectError: false,
+		},
+		{
+			name:        "successful total with no users",
+			mockReturn:  0,
+			mockError:   nil,
+			expectError: false,
+		},
+		{
+			name:        "database error",
+			mockReturn:  0,
+			mockError:   errors.New("connection failed"),
+			expectError: true,
+		},
+	}
 
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	mockRepo.EXPECT().
-		PingDataBase().
-		Return(nil).
-		Times(1)
+			mockRepo := mocks.NewMockUserRepository(ctrl)
+			mockRepo.EXPECT().
+				GetTotalUsers().
+				Return(tt.mockReturn, tt.mockError).
+				Times(1)
 
-	service := NewUserService(mockRepo)
+			service := NewUserService(mockRepo)
+			total, err := service.GetTotalUsers()
 
-	result := service.PingDataBase()
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error %v, got %v", tt.expectError, err != nil)
+			}
 
-	if !result {
-		t.Errorf("Expected PingDataBase to return true, got false")
+			if !tt.expectError && total != tt.mockReturn {
+				t.Errorf("Expected %d users, got %d", tt.mockReturn, total)
+			}
+		})
 	}
 }
 
-// Test_UserService_PingDataBase_Failure tests failed database ping
-func Test_UserService_PingDataBase_Failure(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+// Test_UserService_FindAll tests FindAll with various scenarios
+func Test_UserService_FindAll(t *testing.T) {
+	tests := []struct {
+		name          string
+		mockUsers     []models.User
+		mockError     error
+		expectError   bool
+		expectedCount int
+	}{
+		{
+			name: "successful retrieval with multiple users",
+			mockUsers: []models.User{
+				{
+					ID:    primitive.NewObjectID(),
+					Name:  "John Doe",
+					Email: "john@example.com",
+				},
+				{
+					ID:    primitive.NewObjectID(),
+					Name:  "Jane Smith",
+					Email: "jane@example.com",
+				},
+			},
+			mockError:     nil,
+			expectError:   false,
+			expectedCount: 2,
+		},
+		{
+			name:          "successful retrieval with no users",
+			mockUsers:     []models.User{},
+			mockError:     nil,
+			expectError:   false,
+			expectedCount: 0,
+		},
+		{
+			name:          "database error",
+			mockUsers:     nil,
+			mockError:     errors.New("connection failed"),
+			expectError:   true,
+			expectedCount: 0,
+		},
+	}
 
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	mockRepo.EXPECT().
-		PingDataBase().
-		Return(errors.New("database unavailable")).
-		Times(1)
+			mockRepo := mocks.NewMockUserRepository(ctrl)
+			mockRepo.EXPECT().
+				FindAll().
+				Return(tt.mockUsers, tt.mockError).
+				Times(1)
 
-	service := NewUserService(mockRepo)
+			service := NewUserService(mockRepo)
+			users, err := service.FindAll()
 
-	result := service.PingDataBase()
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error %v, got %v", tt.expectError, err != nil)
+			}
 
-	if result {
-		t.Errorf("Expected PingDataBase to return false, got true")
+			if len(users) != tt.expectedCount {
+				t.Errorf("Expected %d users, got %d", tt.expectedCount, len(users))
+			}
+		})
 	}
 }
 
-// Test_UserService_Create_Success tests successful user creation
-func Test_UserService_Create_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockUserRepository(ctrl)
-
-	user := &models.User{
-		ID:    primitive.NewObjectID(),
-		Name:  "John Doe",
-		Email: "john@example.com",
-	}
-
-	mockRepo.EXPECT().
-		Create(user).
-		Return(nil).
-		Times(1)
-
-	service := NewUserService(mockRepo)
-
-	err := service.Create(user)
-
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-}
-
-// Test_UserService_FindByID_Success tests successful user retrieval by ID
-func Test_UserService_FindByID_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockUserRepository(ctrl)
-
+// Test_UserService_FindByID tests FindByID with various scenarios
+func Test_UserService_FindByID(t *testing.T) {
 	userID := primitive.NewObjectID()
-	expectedUser := &models.User{
-		ID:    userID,
-		Name:  "John Doe",
-		Email: "john@example.com",
+	tests := []struct {
+		name        string
+		id          primitive.ObjectID
+		mockUser    *models.User
+		mockError   error
+		expectError bool
+	}{
+		{
+			name: "successful retrieval",
+			id:   userID,
+			mockUser: &models.User{
+				ID:    userID,
+				Name:  "John Doe",
+				Email: "john@example.com",
+			},
+			mockError:   nil,
+			expectError: false,
+		},
+		{
+			name:        "user not found",
+			id:          primitive.NewObjectID(),
+			mockUser:    nil,
+			mockError:   errors.New("user not found"),
+			expectError: true,
+		},
 	}
 
-	mockRepo.EXPECT().
-		FindByID(userID).
-		Return(expectedUser, nil).
-		Times(1)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	service := NewUserService(mockRepo)
+			mockRepo := mocks.NewMockUserRepository(ctrl)
+			mockRepo.EXPECT().
+				FindByID(tt.id).
+				Return(tt.mockUser, tt.mockError).
+				Times(1)
 
-	user, err := service.FindByID(userID)
+			service := NewUserService(mockRepo)
+			user, err := service.FindByID(tt.id)
 
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error %v, got %v", tt.expectError, err != nil)
+			}
 
-	if user.ID != userID {
-		t.Errorf("Expected user ID %v, got %v", userID, user.ID)
+			if !tt.expectError && user.ID != tt.id {
+				t.Errorf("Expected user ID %v, got %v", tt.id, user.ID)
+			}
+		})
 	}
 }
 
-// Test_UserService_Delete_Success tests successful user deletion
-func Test_UserService_Delete_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+// Test_UserService_Create tests Create with various scenarios
+func Test_UserService_Create(t *testing.T) {
+	tests := []struct {
+		name        string
+		user        *models.User
+		mockError   error
+		expectError bool
+	}{
+		{
+			name: "successful creation",
+			user: &models.User{
+				ID:    primitive.NewObjectID(),
+				Name:  "John Doe",
+				Email: "john@example.com",
+			},
+			mockError:   nil,
+			expectError: false,
+		},
+		{
+			name: "creation with duplicate email",
+			user: &models.User{
+				ID:    primitive.NewObjectID(),
+				Name:  "John Doe",
+				Email: "john@example.com",
+			},
+			mockError:   errors.New("duplicate key error"),
+			expectError: true,
+		},
+	}
 
-	mockRepo := mocks.NewMockUserRepository(ctrl)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	userID := primitive.NewObjectID()
+			mockRepo := mocks.NewMockUserRepository(ctrl)
+			mockRepo.EXPECT().
+				Create(tt.user).
+				Return(tt.mockError).
+				Times(1)
 
-	mockRepo.EXPECT().
-		Delete(userID).
-		Return(nil).
-		Times(1)
+			service := NewUserService(mockRepo)
+			err := service.Create(tt.user)
 
-	service := NewUserService(mockRepo)
-
-	err := service.Delete(userID)
-
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error %v, got %v", tt.expectError, err != nil)
+			}
+		})
 	}
 }
 
-// Test_UserService_Update_Success tests successful user update
-func Test_UserService_Update_Success(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockUserRepository(ctrl)
-
+// Test_UserService_Update tests Update with various scenarios
+func Test_UserService_Update(t *testing.T) {
 	userID := primitive.NewObjectID()
-	user := &models.User{
-		ID:    userID,
-		Name:  "John Updated",
-		Email: "john.updated@example.com",
+	tests := []struct {
+		name        string
+		id          primitive.ObjectID
+		user        *models.User
+		mockError   error
+		expectError bool
+	}{
+		{
+			name: "successful update",
+			id:   userID,
+			user: &models.User{
+				Name:  "John Updated",
+				Email: "john.updated@example.com",
+			},
+			mockError:   nil,
+			expectError: false,
+		},
+		{
+			name: "update non-existent user",
+			id:   primitive.NewObjectID(),
+			user: &models.User{
+				Name:  "Jane Doe",
+				Email: "jane@example.com",
+			},
+			mockError:   errors.New("user not found"),
+			expectError: true,
+		},
 	}
 
-	mockRepo.EXPECT().
-		Update(userID, user).
-		Return(nil).
-		Times(1)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-	service := NewUserService(mockRepo)
+			mockRepo := mocks.NewMockUserRepository(ctrl)
+			mockRepo.EXPECT().
+				Update(tt.id, tt.user).
+				Return(tt.mockError).
+				Times(1)
 
-	err := service.Update(userID, user)
+			service := NewUserService(mockRepo)
+			err := service.Update(tt.id, tt.user)
 
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error %v, got %v", tt.expectError, err != nil)
+			}
+		})
+	}
+}
+
+// Test_UserService_Delete tests Delete with various scenarios
+func Test_UserService_Delete(t *testing.T) {
+	tests := []struct {
+		name        string
+		id          primitive.ObjectID
+		mockError   error
+		expectError bool
+	}{
+		{
+			name:        "successful deletion",
+			id:          primitive.NewObjectID(),
+			mockError:   nil,
+			expectError: false,
+		},
+		{
+			name:        "delete non-existent user",
+			id:          primitive.NewObjectID(),
+			mockError:   errors.New("user not found"),
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockRepo := mocks.NewMockUserRepository(ctrl)
+			mockRepo.EXPECT().
+				Delete(tt.id).
+				Return(tt.mockError).
+				Times(1)
+
+			service := NewUserService(mockRepo)
+			err := service.Delete(tt.id)
+
+			if (err != nil) != tt.expectError {
+				t.Errorf("Expected error %v, got %v", tt.expectError, err != nil)
+			}
+		})
 	}
 }

@@ -22,13 +22,13 @@ import (
 func main() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("⚠️  No se encontró .env, usando variables del sistema")
+		log.Println("No .env file found, using system environment variables")
 	}
 
 	// Initialize application
 	app, err := bootstrap()
 	if err != nil {
-		log.Fatalf("❌ Error durante el bootstrap: %v", err)
+		log.Fatalf("Error during bootstrap: %v", err)
 	}
 
 	// Setup graceful shutdown
