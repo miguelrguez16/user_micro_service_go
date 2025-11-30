@@ -1,0 +1,328 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Server",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "run",
+                "cmd/main.go"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true
+            },
+            "isBackground": true
+        },
+        {
+            "label": "Run Tests",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "test",
+                "-v",
+                "./..."
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run Tests with Coverage",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "test",
+                "-v",
+                "-coverprofile=coverage.out",
+                "./..."
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run Tests with Coverage & Show Percentage",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "go test -v -coverprofile=coverage.out ./... && echo '\\n===== COVERAGE PERCENTAGE =====' && go tool cover -func=coverage.out | tail -1 | awk '{print \"Total Coverage: \" $3}'"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Generate Coverage Report",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "tool",
+                "cover",
+                "-html=coverage.out",
+                "-o=coverage.html"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "dependsOn": [
+                "Run Tests with Coverage"
+            ],
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Display Coverage Summary",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "echo '===== CODE COVERAGE REPORT =====' && echo '' && echo 'Total Coverage:' && go tool cover -func=coverage.out | tail -1 && echo '' && echo 'Coverage by Package:' && go tool cover -func=coverage.out | grep -E '^user/micro' | grep -v 'mock_' | head -20"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "dependsOn": [
+                "Run Tests with Coverage"
+            ],
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Build Project",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "build",
+                "-o=bin/user-microservice",
+                "cmd/main.go"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "build"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Linter",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "fmt",
+                "./..."
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "build"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Vet",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "vet",
+                "./..."
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "build"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Single Test",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "test",
+                "-v",
+                "-run",
+                "${input:testName}",
+                "./..."
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Clean Build Cache",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "clean",
+                "-testcache"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "build"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Show Coverage Percentage",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "go tool cover -func=coverage.out | tail -1 | awk '{printf \"\\n📊 TOTAL COVERAGE: %s\\n\", $3}'"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "dependsOn": [
+                "Run Tests with Coverage"
+            ],
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Run Tests & Show Coverage Percentage",
+            "type": "shell",
+            "command": "/bin/bash",
+            "args": [
+                "-c",
+                "go test -v -coverprofile=coverage.out ./... 2>&1 | grep -E '(PASS|FAIL|^coverage:|^ok)' && echo '' && echo '===================' && echo '📊 CODE COVERAGE' && echo '===================' && go tool cover -func=coverage.out | tail -1 | awk '{print $1, $2, $3}' && echo '===================' && echo '' && echo 'To view detailed report run: go tool cover -html=coverage.out'"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "test"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            }
+        },
+        {
+            "label": "Install Dependencies",
+            "type": "shell",
+            "command": "go",
+            "args": [
+                "mod",
+                "download"
+            ],
+            "problemMatcher": [
+                "$go"
+            ],
+            "group": {
+                "kind": "build"
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "testName",
+            "type": "promptString",
+            "description": "Enter the name of the test to run (e.g., Test_UserService_FindAll_Success)"
+        }
+    ]
+}
