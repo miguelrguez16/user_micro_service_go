@@ -1,48 +1,33 @@
-// Package repository provides the UserRepository implementation for interacting with the MongoDB database.
-package repository
+package mongo
 
 import (
 	"context"
 	"log"
 	"time"
-	"user/micro/models"
+	"user/micro/internal/domain/models"
+	"user/micro/internal/domain/ports"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// UserRepository defines the methods for interacting with the user collection in MongoDB.
-// It includes methods for creating, finding, updating, and deleting users.
-// The methods use context for timeout management and return errors if any operation fails.
-// The UserRepository struct contains a MongoDB collection for users.
+// UserRepository implements the ports.UserRepository interface for MongoDB.
 type UserRepository struct {
 	Collection *mongo.Collection
 }
 
-type UserRepositoryInterface interface {
-	Create(user *models.User) error
-	FindAll() ([]models.User, error)
-	FindByID(id primitive.ObjectID) (*models.User, error)
-	Update(id primitive.ObjectID, user *models.User) error
-	Delete(id primitive.ObjectID) error
-	PingDataBase() error
-	GetTotalUsers() (int64, error)
-}
-
 // NewUserRepository creates a new UserRepository instance.
-func NewUserRepository(db *mongo.Database) *UserRepository {
+func NewUserRepository(db *mongo.Database) ports.UserRepository {
 	return &UserRepository{Collection: db.Collection("users")}
 }
 
 // Create inserts a new user into the MongoDB collection.
-// It takes a pointer to a User model and returns an error if the operation fails.
 func (userRepo *UserRepository) Create(user *models.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := userRepo.Collection.InsertOne(ctx, user)
-
 	if err != nil {
 		log.Println("Error Create user:", err)
 		return err
@@ -51,6 +36,7 @@ func (userRepo *UserRepository) Create(user *models.User) error {
 	return nil
 }
 
+// FindAll retrieves all users from the collection.
 func (userRepo *UserRepository) FindAll() ([]models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -74,6 +60,7 @@ func (userRepo *UserRepository) FindAll() ([]models.User, error) {
 	return users, nil
 }
 
+// FindByID retrieves a user by ID from the collection.
 func (userRepo *UserRepository) FindByID(id primitive.ObjectID) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -86,6 +73,7 @@ func (userRepo *UserRepository) FindByID(id primitive.ObjectID) (*models.User, e
 	return &user, nil
 }
 
+// Update updates a user in the collection.
 func (userRepo *UserRepository) Update(id primitive.ObjectID, user *models.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -94,6 +82,7 @@ func (userRepo *UserRepository) Update(id primitive.ObjectID, user *models.User)
 	return err
 }
 
+// Delete removes a user from the collection.
 func (userRepo *UserRepository) Delete(id primitive.ObjectID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -103,19 +92,19 @@ func (userRepo *UserRepository) Delete(id primitive.ObjectID) error {
 }
 
 // PingDataBase checks the connection to the MongoDB database.
-// It returns an error if the connection cannot be established or if the ping fails.
 func (userRepo *UserRepository) PingDataBase() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	err := userRepo.Collection.Database().Client().Ping(ctx, nil)
 	if err != nil {
-		log.Println("Error PingDataBase :", err)
+		log.Println("Error PingDataBase:", err)
 		return err
 	}
 	return nil
 }
 
+// GetTotalUsers returns the total count of users in the collection.
 func (userRepo *UserRepository) GetTotalUsers() (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
